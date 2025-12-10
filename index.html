@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNSCrypt-Proxy 日志分析器</title>
+  <meta name="description" content="专业的 DNSCrypt-Proxy DNS 日志分析工具，提供可视化图表和统计数据">
+  <link rel="stylesheet" href="style.css">
+  <script src="chart.umd.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-content">
+        <h1 class="title">
+          <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          DNSCrypt-Proxy 日志分析器
+        </h1>
+        <p class="subtitle">实时分析 DNS 查询日志，洞察网络流量</p>
+      </div>
+    </header>
+
+    <div class="upload-section">
+      <div class="upload-card">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+        </div>
+        <h3>上传日志文件</h3>
+        <div class="file-inputs">
+          <div class="file-input-group">
+            <label for="nxLog" class="file-label">
+              <span class="label-text">失败日志 (nx.log)</span>
+              <input type="file" id="nxLog" accept=".log" class="file-input">
+              <span class="file-name" id="nxFileName">未选择文件</span>
+            </label>
+          </div>
+          <div class="file-input-group">
+            <label for="queryLog" class="file-label">
+              <span class="label-text">成功日志 (query.log)</span>
+              <input type="file" id="queryLog" accept=".log" class="file-input">
+              <span class="file-name" id="queryFileName">未选择文件</span>
+            </label>
+          </div>
+        </div>
+        <button id="analyzeBtn" class="analyze-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          开始分析
+        </button>
+      </div>
+    </div>
+
+    <div id="statsSection" class="stats-section hidden">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="successCount">0</div>
+            <div class="stat-label">成功查询</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="failCount">0</div>
+            <div class="stat-label">失败查询</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">总查询数</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon rate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="successRate">0%</div>
+            <div class="stat-label">成功率</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chartsSection" class="charts-section hidden">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">Top 20 查询域名</h3>
+          <div class="filter-controls">
+            <div class="filter-input-group">
+              <input type="text" id="filterInput" class="filter-input" placeholder="输入关键词过滤域名...">
+              <button id="addFilterBtn" class="add-filter-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                添加过滤
+              </button>
+            </div>
+            <div id="filterTags" class="filter-tags"></div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="topDomainsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <h3 class="chart-title">查询类型分布</h3>
+          <div class="chart-container chart-with-legend">
+            <canvas id="queryTypeChart"></canvas>
+            <div id="queryTypeLegend" class="custom-legend"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3 class="chart-title">Top 20 失败域名</h3>
+          <div class="chart-container">
+            <canvas id="topFailedChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">查询时间分布</h3>
+        <div class="chart-container">
+          <canvas id="timeDistChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">Top 10 DNS 服务器</h3>
+        <div class="chart-container">
+          <canvas id="serverChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <a href="https://github.com/lololowe/DNSCrypt-Proxy-Log-Analyzer" target="_blank" rel="noopener noreferrer"
+          class="github-link">
+          <svg class="github-logo" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+          </svg>
+          <span class="github-text">DNSCrypt-Proxy Log Analyzer</span>
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
